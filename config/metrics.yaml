@@ -1,3 +1,49 @@
+# ========= 列名映射 =========
+# 将 CSV 中的实际列名映射到指标 SQL 使用的短名。
+# 每个短名对应一个候选列名列表，匹配时取第一个存在的列。
+column_aliases:
+  VehSpd:
+    - "IC_Tachograph_VehicleSpeed[km/h]"
+    - "TBOX_Speed_Trf[km/h]"
+  BattCurr:
+    - "BMS_TotalCurrent[A]"
+  BattVolt:
+    - "BMS_TotalVolt[V]"
+  MotCurr:
+    - "MCU_I_Curr[A]"
+  MotVolt:
+    - "MCU_U_Volt[V]"
+  StkCurr:
+    - "FCU_StackCurr[A]"
+    - "SPM_I_StkCurr[A]"
+  StkVolt:
+    - "FCU_StackVolt[V]"
+    - "SPM_U_StkVolt[V]"
+  DcfCurrOut:
+    - "FCU_DCFCurrOut[A]"
+    - "SPM_I_DCFCurrOut[A]"
+    - "DCDC_OutputCurr[A]"
+  DcfVoltOut:
+    - "FCU_DCFVoltOut[V]"
+    - "SPM_U_DCFVoltOut[V]"
+    - "DCDC_OutputVolt[V]"
+  WcpCurr:
+    - "AirCmpCurrent[A]"
+  WcpVolt:
+    - "AirCmpVoltage[V]"
+  HrbCurr:
+    - "HDC_I_HRBCurr[A]"
+    - "H2PumpCurrent[A]"
+  HrbVolt:
+    - "HDC_U_HRBVolt[V]"
+    - "H2PumpVoltage[V]"
+  AcpCurr:
+    - "ADC_I_ACPCurr[A]"
+    - "IPF_AcpMotorCurrentTrf[A]"
+  AcpVolt:
+    - "ADC_U_ACPVolt[V]"
+    - "IPF_AcpMotorVoltageTrf"
+
 metrics:
 
   # ========= 时间 / 距离 =========

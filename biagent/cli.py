@@ -43,10 +43,12 @@ _SQL_RESERVED = frozenset(
 # Helpers
 # ---------------------------------------------------------------------------
 
-def load_metrics(metrics_path: str) -> list[dict]:
+def load_metrics(metrics_path: str) -> tuple[list[dict], dict[str, list[str]]]:
     with open(metrics_path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
-    return data.get("metrics", [])
+    metrics = data.get("metrics", [])
+    aliases = data.get("column_aliases", {})
+    return metrics, aliases
 
 
 def substitute_params(sql: str, params: dict[str, Any]) -> str:
@@ -77,14 +79,36 @@ def resolve_columns(csv_columns: list[str], sql: str) -> str:
     return re.sub(r"\b[A-Za-z_]\w*\b", replacer, sql)
 
 
+def apply_column_aliases(
+    con: duckdb.DuckDBPyConnection,
+    aliases: dict[str, list[str]],
+) -> None:
+    """Rename CSV columns to standard short names based on alias config."""
+    existing = {row[1] for row in con.execute("PRAGMA table_info('t')").fetchall()}
+    existing_lower: dict[str, str] = {c.lower(): c for c in existing}
+    for short_name, candidates in aliases.items():
+        if short_name.lower() in existing_lower:
+            continue
+        for candidate in candidates:
+            actual = existing_lower.get(candidate.lower())
+            if actual:
+                con.execute(f'ALTER TABLE t RENAME COLUMN "{actual}" TO "{short_name}"')
+                existing_lower[short_name.lower()] = short_name
+                del existing_lower[actual.lower()]
+                break
+
+
 def run_metrics(
     csv_path: str,
     metrics: list[dict],
     params: dict[str, Any],
+    aliases: dict[str, list[str]] | None = None,
 ) -> list[dict]:
     """Load a CSV into DuckDB as table 't', run every metric SQL, return rows."""
     con = duckdb.connect()
     con.execute(f"CREATE TABLE t AS SELECT * FROM read_csv_auto('{csv_path}', header=True)")
+    if aliases:
+        apply_column_aliases(con, aliases)
     csv_columns: list[str] = [row[1] for row in con.execute("PRAGMA table_info('t')").fetchall()]
 
     results = []
@@ -119,10 +143,38 @@ def write_csv(rows: list[dict], out_path: str) -> None:
     if not rows:
         return
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
-    with open(out_path, "w", newline="", encoding="utf-8") as f:
+    with open(out_path, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.DictWriter(f, fieldnames=["metric_id", "metric_name", "metric_value", "metric_unit"])
         writer.writeheader()
         writer.writerows(rows)
+
+
+def write_combined_csv(file_results: dict[str, list[dict]], out_path: str) -> None:
+    """Write a pivoted CSV: one value column per input file."""
+    if not file_results:
+        return
+    # Collect ordered metric list from first file
+    first_key = next(iter(file_results))
+    metric_order = [(r["metric_id"], r["metric_name"], r["metric_unit"]) for r in file_results[first_key]]
+
+    # Build column names from file stems
+    file_stems = list(file_results.keys())
+    fieldnames = ["metric_id", "metric_name", "metric_unit"] + file_stems
+
+    # Build lookup: file_stem -> {metric_id: value}
+    value_map: dict[str, dict[str, Any]] = {}
+    for stem, rows in file_results.items():
+        value_map[stem] = {r["metric_id"]: r["metric_value"] for r in rows}
+
+    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+    with open(out_path, "w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for mid, mname, munit in metric_order:
+            row: dict[str, Any] = {"metric_id": mid, "metric_name": mname, "metric_unit": munit}
+            for stem in file_stems:
+                row[stem] = value_map[stem].get(mid, "")
+            writer.writerow(row)
 
 
 # ---------------------------------------------------------------------------
@@ -185,23 +237,25 @@ def main(argv: Optional[list[str]] = None) -> None:
         "stk_h2_corr": args.stk_h2_corr,
     }
 
-    metrics = load_metrics(args.metrics)
+    metrics, aliases = load_metrics(args.metrics)
     print(f"已加载 {len(metrics)} 个指标 from {args.metrics}")
+    if aliases:
+        print(f"已加载 {len(aliases)} 个列名映射")
 
-    all_results: list[dict] = []
+    file_results: dict[str, list[dict]] = {}
 
     for csv_file in args.csv_files:
         print(f"\n处理文件: {csv_file}")
-        rows = run_metrics(csv_file, metrics, params)
+        rows = run_metrics(csv_file, metrics, params, aliases)
         stem = Path(csv_file).stem
         out_path = os.path.join(args.output_dir, f"{stem}_result.csv")
         write_csv(rows, out_path)
         print(f"  → 结果已写入: {out_path}")
-        all_results.extend(rows)
+        file_results[stem] = rows
 
     if len(args.csv_files) > 1:
         combined_path = os.path.join(args.output_dir, "combined_result.csv")
-        write_csv(all_results, combined_path)
+        write_combined_csv(file_results, combined_path)
         print(f"\n合并结果已写入: {combined_path}")
 
     print("\n完成。")
