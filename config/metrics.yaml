@@ -1,0 +1,1071 @@
+metrics:
+
+  # ========= 时间 / 距离 =========
+  - id: TimeReady
+    name: "整备时长(s)"
+    unit: "s"
+    prompt_sql: >
+      SELECT
+        'TimeReady' AS metric_id,
+        '整备时长(s)' AS metric_name,
+        COUNT(*) * 1.0 AS metric_value,
+        's' AS metric_unit
+      FROM t;
+
+  - id: TimeDrv
+    name: "行驶时长(s)"
+    unit: "s"
+    prompt_sql: >
+      SELECT
+        'TimeDrv' AS metric_id,
+        '行驶时长(s)' AS metric_name,
+        SUM(CASE WHEN COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)>0 THEN 1 ELSE 0 END) * 1.0 AS metric_value,
+        's' AS metric_unit
+      FROM t;
+
+  - id: TimeStop
+    name: "怠速时长(s)"
+    unit: "s"
+    prompt_sql: >
+      SELECT
+        'TimeStop' AS metric_id,
+        '怠速时长(s)' AS metric_name,
+        SUM(CASE WHEN COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)=0 THEN 1 ELSE 0 END) * 1.0 AS metric_value,
+        's' AS metric_unit
+      FROM t;
+
+  - id: TimeFC
+    name: "燃料电池运行时长(s)"
+    unit: "s"
+    prompt_sql: >
+      SELECT
+        'TimeFC' AS metric_id,
+        '燃料电池运行时长(s)' AS metric_name,
+        SUM(CASE WHEN COALESCE(TRY_CAST(StkCurr AS DOUBLE),0)>0 THEN 1 ELSE 0 END) * 1.0 AS metric_value,
+        's' AS metric_unit
+      FROM t;
+
+  - id: TotalDist
+    name: "总行驶里程(km)"
+    unit: "km"
+    prompt_sql: >
+      SELECT
+        'TotalDist' AS metric_id,
+        '总行驶里程(km)' AS metric_name,
+        SUM(COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0) AS metric_value,
+        'km' AS metric_unit
+      FROM t;
+
+  # ========= 能量（kWh）=========
+  - id: StkEng_all
+    name: "电堆总输出电能(kWh)"
+    unit: "kWh"
+    prompt_sql: >
+      SELECT
+        'StkEng_all' AS metric_id,
+        '电堆总输出电能(kWh)' AS metric_name,
+        SUM((COALESCE(TRY_CAST(StkCurr AS DOUBLE),0)*COALESCE(TRY_CAST(StkVolt AS DOUBLE),0))/1000.0/3600.0) AS metric_value,
+        'kWh' AS metric_unit
+      FROM t;
+
+  - id: DcfOutEng_all
+    name: "DC/DC输出总电能(kWh)"
+    unit: "kWh"
+    prompt_sql: >
+      SELECT
+        'DcfOutEng_all' AS metric_id,
+        'DC/DC输出总电能(kWh)' AS metric_name,
+        SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0) AS metric_value,
+        'kWh' AS metric_unit
+      FROM t;
+
+  - id: WcpEng_all
+    name: "空压机总电能(kWh)"
+    unit: "kWh"
+    prompt_sql: >
+      SELECT
+        'WcpEng_all' AS metric_id,
+        '空压机总电能(kWh)' AS metric_name,
+        SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0) AS metric_value,
+        'kWh' AS metric_unit
+      FROM t;
+
+  - id: HrbEng_all
+    name: "氢气循环泵总电能(kWh)"
+    unit: "kWh"
+    prompt_sql: >
+      SELECT
+        'HrbEng_all' AS metric_id,
+        '氢气循环泵总电能(kWh)' AS metric_name,
+        SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0) AS metric_value,
+        'kWh' AS metric_unit
+      FROM t;
+
+  - id: AcpEng_all
+    name: "冷却泵总电能(kWh)"
+    unit: "kWh"
+    prompt_sql: >
+      SELECT
+        'AcpEng_all' AS metric_id,
+        '冷却泵总电能(kWh)' AS metric_name,
+        SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0) AS metric_value,
+        'kWh' AS metric_unit
+      FROM t;
+
+  - id: FCEng_all
+    name: "燃料电池净输出总电能(kWh)"
+    unit: "kWh"
+    prompt_sql: >
+      SELECT
+        'FCEng_all' AS metric_id,
+        '燃料电池净输出总电能(kWh)' AS metric_name,
+        (
+          SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+          - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+          - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+          - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+        ) AS metric_value,
+        'kWh' AS metric_unit
+      FROM t;
+
+  - id: BattEng_all
+    name: "动力电池总电能(kWh)"
+    unit: "kWh"
+    prompt_sql: >
+      SELECT
+        'BattEng_all' AS metric_id,
+        '动力电池总电能(kWh)' AS metric_name,
+        SUM((COALESCE(TRY_CAST(BattCurr AS DOUBLE),0)*COALESCE(TRY_CAST(BattVolt AS DOUBLE),0))/1000.0/3600.0) AS metric_value,
+        'kWh' AS metric_unit
+      FROM t;
+
+  - id: DrvEng_all
+    name: "驱动电机总电能(kWh)"
+    unit: "kWh"
+    prompt_sql: >
+      SELECT
+        'DrvEng_all' AS metric_id,
+        '驱动电机总电能(kWh)' AS metric_name,
+        SUM((COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))/1000.0/3600.0) AS metric_value,
+        'kWh' AS metric_unit
+      FROM t;
+
+  - id: DrvEng_Pos_all
+    name: "驱动电机驱动总电能(kWh)"
+    unit: "kWh"
+    prompt_sql: >
+      SELECT
+        'DrvEng_Pos_all' AS metric_id,
+        '驱动电机驱动总电能(kWh)' AS metric_name,
+        SUM(
+          CASE WHEN (COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))>0
+               THEN (COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))/1000.0/3600.0
+               ELSE 0 END
+        ) AS metric_value,
+        'kWh' AS metric_unit
+      FROM t;
+
+  - id: DrvEng_Neg_all
+    name: "驱动电机回馈总电能(kWh)"
+    unit: "kWh"
+    prompt_sql: >
+      SELECT
+        'DrvEng_Neg_all' AS metric_id,
+        '驱动电机回馈总电能(kWh)' AS metric_name,
+        SUM(
+          CASE WHEN (COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))<0
+               THEN -(COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))/1000.0/3600.0
+               ELSE 0 END
+        ) AS metric_value,
+        'kWh' AS metric_unit
+      FROM t;
+
+  - id: VehEng_all
+    name: "整车总电能(kWh)"
+    unit: "kWh"
+    prompt_sql: >
+      SELECT
+        'VehEng_all' AS metric_id,
+        '整车总电能(kWh)' AS metric_name,
+        (
+          (
+            SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+          )
+          + SUM((COALESCE(TRY_CAST(BattCurr AS DOUBLE),0)*COALESCE(TRY_CAST(BattVolt AS DOUBLE),0))/1000.0/3600.0)
+        ) AS metric_value,
+        'kWh' AS metric_unit
+      FROM t;
+
+  - id: AuxEng_all
+    name: "整车附件总电能(kWh)"
+    unit: "kWh"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          (
+            (
+              SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+              - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+              - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+              - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            )
+            + SUM((COALESCE(TRY_CAST(BattCurr AS DOUBLE),0)*COALESCE(TRY_CAST(BattVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS veh_kwh,
+          SUM((COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))/1000.0/3600.0) AS drv_kwh
+        FROM t
+      )
+      SELECT
+        'AuxEng_all' AS metric_id,
+        '整车附件总电能(kWh)' AS metric_name,
+        veh_kwh - drv_kwh AS metric_value,
+        'kWh' AS metric_unit
+      FROM base;
+
+  # ========= 氢耗 =========
+  - id: H2_all_long
+    name: "总耗氢量(kg)"
+    unit: "kg"
+    prompt_sql: >
+      SELECT
+        'H2_all_long' AS metric_id,
+        '总耗氢量(kg)' AS metric_name,
+        SUM(
+          (COALESCE(TRY_CAST(StkCurr AS DOUBLE), 0))
+          / 2.016 / 96485 * 2
+          / 3600
+          * {{stk_cell_count}}
+          / {{stk_h2_corr}}
+        ) AS metric_value,
+        'kg' AS metric_unit
+      FROM t;
+
+  - id: H2EleRatio
+    name: "氢电转换比(kWh/kg)"
+    unit: "kWh/kg"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          (
+            SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS fc_kwh,
+          SUM(
+            (COALESCE(TRY_CAST(StkCurr AS DOUBLE), 0))
+            / 2.016 / 96485 * 2
+            / 3600
+            * {{stk_cell_count}}
+            / {{stk_h2_corr}}
+          ) AS h2_kg
+        FROM t
+      )
+      SELECT
+        'H2EleRatio' AS metric_id,
+        '氢电转换比(kWh/kg)' AS metric_name,
+        CASE WHEN h2_kg>0 THEN fc_kwh/h2_kg ELSE NULL END AS metric_value,
+        'kWh/kg' AS metric_unit
+      FROM base;
+
+  - id: H_all_Long
+    name: "整车等效耗氢量(kg)"
+    unit: "kg"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          (
+            SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS fc_kwh,
+          SUM((COALESCE(TRY_CAST(BattCurr AS DOUBLE),0)*COALESCE(TRY_CAST(BattVolt AS DOUBLE),0))/1000.0/3600.0) AS batt_kwh,
+          SUM(
+            (COALESCE(TRY_CAST(StkCurr AS DOUBLE), 0))
+            / 2.016 / 96485 * 2
+            / 3600
+            * {{stk_cell_count}}
+            / {{stk_h2_corr}}
+          ) AS h2_kg
+        FROM t
+      )
+      SELECT
+        'H_all_Long' AS metric_id,
+        '整车等效耗氢量(kg)' AS metric_name,
+        CASE WHEN h2_kg>0 THEN h2_kg + batt_kwh/(fc_kwh/h2_kg) ELSE NULL END AS metric_value,
+        'kg' AS metric_unit
+      FROM base;
+
+  - id: VehH_Dist
+    name: "百公里等效氢耗(kg/100km)"
+    unit: "kg/100km"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0) AS dist_km,
+          (
+            SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS fc_kwh,
+          SUM((COALESCE(TRY_CAST(BattCurr AS DOUBLE),0)*COALESCE(TRY_CAST(BattVolt AS DOUBLE),0))/1000.0/3600.0) AS batt_kwh,
+          SUM(
+            (COALESCE(TRY_CAST(StkCurr AS DOUBLE), 0))
+            / 2.016 / 96485 * 2
+            / 3600
+            * {{stk_cell_count}}
+            / {{stk_h2_corr}}
+          ) AS h2_kg
+        FROM t
+      )
+      SELECT
+        'VehH_Dist' AS metric_id,
+        '百公里等效氢耗(kg/100km)' AS metric_name,
+        CASE WHEN dist_km>0 AND h2_kg>0
+             THEN (h2_kg + batt_kwh/(fc_kwh/h2_kg)) / dist_km * 100
+             ELSE NULL END AS metric_value,
+        'kg/100km' AS metric_unit
+      FROM base;
+
+  # ========= 效率（LHV=33.5 kWh/kg）=========
+  - id: StkEff
+    name: "电堆效率(%)"
+    unit: "%"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM((COALESCE(TRY_CAST(StkCurr AS DOUBLE),0)*COALESCE(TRY_CAST(StkVolt AS DOUBLE),0))/1000.0/3600.0) AS stk_kwh,
+          SUM(
+            (COALESCE(TRY_CAST(StkCurr AS DOUBLE), 0))
+            / 2.016 / 96485 * 2
+            / 3600
+            * {{stk_cell_count}}
+            / {{stk_h2_corr}}
+          ) AS h2_kg
+        FROM t
+      )
+      SELECT
+        'StkEff' AS metric_id,
+        '电堆效率(%)' AS metric_name,
+        CASE WHEN h2_kg>0 THEN stk_kwh/(h2_kg*33.5)*100 ELSE NULL END AS metric_value,
+        '%' AS metric_unit
+      FROM base;
+
+  - id: FcSysEff
+    name: "燃料电池系统效率(%)"
+    unit: "%"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          (
+            SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS fc_kwh,
+          SUM(
+            (COALESCE(TRY_CAST(StkCurr AS DOUBLE), 0))
+            / 2.016 / 96485 * 2
+            / 3600
+            * {{stk_cell_count}}
+            / {{stk_h2_corr}}
+          ) AS h2_kg
+        FROM t
+      )
+      SELECT
+        'FcSysEff' AS metric_id,
+        '燃料电池系统效率(%)' AS metric_name,
+        CASE WHEN h2_kg>0 THEN fc_kwh/(h2_kg*33.5)*100 ELSE NULL END AS metric_value,
+        '%' AS metric_unit
+      FROM base;
+
+  # ========= 百公里能耗（kWh/100km）=========
+  - id: DrvEng_Dist
+    name: "百公里驱动电机电耗(kWh/100km)"
+    unit: "kWh/100km"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0) AS dist_km,
+          SUM((COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))/1000.0/3600.0) AS drv_kwh
+        FROM t
+      )
+      SELECT
+        'DrvEng_Dist' AS metric_id,
+        '百公里驱动电机电耗(kWh/100km)' AS metric_name,
+        CASE WHEN dist_km>0 THEN drv_kwh/dist_km*100 ELSE NULL END AS metric_value,
+        'kWh/100km' AS metric_unit
+      FROM base;
+
+  - id: DrvEng_Pos_Dist
+    name: "百公里驱动电机驱动电耗(kWh/100km)"
+    unit: "kWh/100km"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0) AS dist_km,
+          SUM(
+            CASE WHEN (COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))>0
+                 THEN (COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))/1000.0/3600.0
+                 ELSE 0 END
+          ) AS pos_kwh
+        FROM t
+      )
+      SELECT
+        'DrvEng_Pos_Dist' AS metric_id,
+        '百公里驱动电机驱动电耗(kWh/100km)' AS metric_name,
+        CASE WHEN dist_km>0 THEN pos_kwh/dist_km*100 ELSE NULL END AS metric_value,
+        'kWh/100km' AS metric_unit
+      FROM base;
+
+  - id: DrvEng_Neg_Dist
+    name: "百公里驱动电机回馈电量(kWh/100km)"
+    unit: "kWh/100km"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0) AS dist_km,
+          SUM(
+            CASE WHEN (COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))<0
+                 THEN -(COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))/1000.0/3600.0
+                 ELSE 0 END
+          ) AS neg_kwh
+        FROM t
+      )
+      SELECT
+        'DrvEng_Neg_Dist' AS metric_id,
+        '百公里驱动电机回馈电量(kWh/100km)' AS metric_name,
+        CASE WHEN dist_km>0 THEN neg_kwh/dist_km*100 ELSE NULL END AS metric_value,
+        'kWh/100km' AS metric_unit
+      FROM base;
+
+  - id: AuxEng_Dist
+    name: "百公里整车附件电耗(kWh/100km)"
+    unit: "kWh/100km"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0) AS dist_km,
+          (
+            (
+              SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+              - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+              - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+              - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            )
+            + SUM((COALESCE(TRY_CAST(BattCurr AS DOUBLE),0)*COALESCE(TRY_CAST(BattVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS aux_kwh
+        FROM t
+      )
+      SELECT
+        'AuxEng_Dist' AS metric_id,
+        '百公里整车附件电耗(kWh/100km)' AS metric_name,
+        CASE WHEN dist_km>0 THEN aux_kwh/dist_km*100 ELSE NULL END AS metric_value,
+        'kWh/100km' AS metric_unit
+      FROM base;
+
+  - id: FCEng_Dist
+    name: "百公里燃料电池净输出电耗(kWh/100km)"
+    unit: "kWh/100km"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0) AS dist_km,
+          (
+            SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS fc_kwh
+        FROM t
+      )
+      SELECT
+        'FCEng_Dist' AS metric_id,
+        '百公里燃料电池净输出电耗(kWh/100km)' AS metric_name,
+        CASE WHEN dist_km>0 THEN fc_kwh/dist_km*100 ELSE NULL END AS metric_value,
+        'kWh/100km' AS metric_unit
+      FROM base;
+
+  - id: FcBopEng_Dist
+    name: "百公里燃料电池BOP电耗(kWh/100km)"
+    unit: "kWh/100km"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0) AS dist_km,
+          (
+            SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            + SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+            + SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS bop_kwh
+        FROM t
+      )
+      SELECT
+        'FcBopEng_Dist' AS metric_id,
+        '百公里燃料电池BOP电耗(kWh/100km)' AS metric_name,
+        CASE WHEN dist_km>0 THEN bop_kwh/dist_km*100 ELSE NULL END AS metric_value,
+        'kWh/100km' AS metric_unit
+      FROM base;
+
+  - id: FcAcpEng_Dist
+    name: "百公里燃料电池Acp电耗(kWh/100km)"
+    unit: "kWh/100km"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0) AS dist_km,
+          SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0) AS acp_kwh
+        FROM t
+      )
+      SELECT
+        'FcAcpEng_Dist' AS metric_id,
+        '百公里燃料电池Acp电耗(kWh/100km)' AS metric_name,
+        CASE WHEN dist_km>0 THEN acp_kwh/dist_km*100 ELSE NULL END AS metric_value,
+        'kWh/100km' AS metric_unit
+      FROM base;
+
+  - id: FcHrbEng_Dist
+    name: "百公里燃料电池Hrb电耗(kWh/100km)"
+    unit: "kWh/100km"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0) AS dist_km,
+          SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0) AS hrb_kwh
+        FROM t
+      )
+      SELECT
+        'FcHrbEng_Dist' AS metric_id,
+        '百公里燃料电池Hrb电耗(kWh/100km)' AS metric_name,
+        CASE WHEN dist_km>0 THEN hrb_kwh/dist_km*100 ELSE NULL END AS metric_value,
+        'kWh/100km' AS metric_unit
+      FROM base;
+
+  - id: FcWcpEng_Dist
+    name: "百公里燃料电池Wcp电耗(kWh/100km)"
+    unit: "kWh/100km"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0) AS dist_km,
+          SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0) AS wcp_kwh
+        FROM t
+      )
+      SELECT
+        'FcWcpEng_Dist' AS metric_id,
+        '百公里燃料电池Wcp电耗(kWh/100km)' AS metric_name,
+        CASE WHEN dist_km>0 THEN wcp_kwh/dist_km*100 ELSE NULL END AS metric_value,
+        'kWh/100km' AS metric_unit
+      FROM base;
+
+  # ========= 百公里氢耗分项（kg/100km）=========
+  - id: DrvH2_Dist
+    name: "百公里驱动电机等效氢耗(kg/100km)"
+    unit: "kg/100km"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0) AS dist_km,
+          SUM((COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))/1000.0/3600.0) AS drv_kwh,
+          (
+            SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS fc_kwh,
+          SUM(
+            (COALESCE(TRY_CAST(StkCurr AS DOUBLE), 0))
+            / 2.016 / 96485 * 2
+            / 3600
+            * {{stk_cell_count}}
+            / {{stk_h2_corr}}
+          ) AS h2_kg
+        FROM t
+      ),
+      ratio AS (
+        SELECT dist_km, drv_kwh, CASE WHEN h2_kg>0 THEN fc_kwh/h2_kg ELSE NULL END AS h2ele FROM base
+      )
+      SELECT
+        'DrvH2_Dist' AS metric_id,
+        '百公里驱动电机等效氢耗(kg/100km)' AS metric_name,
+        CASE WHEN dist_km>0 AND h2ele>0 THEN (drv_kwh/h2ele)/dist_km*100 ELSE NULL END AS metric_value,
+        'kg/100km' AS metric_unit
+      FROM ratio;
+
+  - id: DrvH2_Pos_Dist
+    name: "百公里驱动电机驱动等效氢耗(kg/100km)"
+    unit: "kg/100km"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0) AS dist_km,
+          SUM(
+            CASE WHEN (COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))>0
+                 THEN (COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))/1000.0/3600.0
+                 ELSE 0 END
+          ) AS drv_pos_kwh,
+          (
+            SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS fc_kwh,
+          SUM(
+            (COALESCE(TRY_CAST(StkCurr AS DOUBLE), 0))
+            / 2.016 / 96485 * 2
+            / 3600
+            * {{stk_cell_count}}
+            / {{stk_h2_corr}}
+          ) AS h2_kg
+        FROM t
+      ),
+      ratio AS (
+        SELECT dist_km, drv_pos_kwh, CASE WHEN h2_kg>0 THEN fc_kwh/h2_kg ELSE NULL END AS h2ele FROM base
+      )
+      SELECT
+        'DrvH2_Pos_Dist' AS metric_id,
+        '百公里驱动电机驱动等效氢耗(kg/100km)' AS metric_name,
+        CASE WHEN dist_km>0 AND h2ele>0 THEN (drv_pos_kwh/h2ele)/dist_km*100 ELSE NULL END AS metric_value,
+        'kg/100km' AS metric_unit
+      FROM ratio;
+
+  - id: DrvH2_Neg_Dist
+    name: "百公里驱动电机回馈等效氢耗(kg/100km)"
+    unit: "kg/100km"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0) AS dist_km,
+          SUM(
+            CASE WHEN (COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))<0
+                 THEN -(COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))/1000.0/3600.0
+                 ELSE 0 END
+          ) AS drv_neg_kwh,
+          (
+            SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS fc_kwh,
+          SUM(
+            (COALESCE(TRY_CAST(StkCurr AS DOUBLE), 0))
+            / 2.016 / 96485 * 2
+            / 3600
+            * {{stk_cell_count}}
+            / {{stk_h2_corr}}
+          ) AS h2_kg
+        FROM t
+      ),
+      ratio AS (
+        SELECT dist_km, drv_neg_kwh, CASE WHEN h2_kg>0 THEN fc_kwh/h2_kg ELSE NULL END AS h2ele FROM base
+      )
+      SELECT
+        'DrvH2_Neg_Dist' AS metric_id,
+        '百公里驱动电机回馈等效氢耗(kg/100km)' AS metric_name,
+        CASE WHEN dist_km>0 AND h2ele>0 THEN (drv_neg_kwh/h2ele)/dist_km*100 ELSE NULL END AS metric_value,
+        'kg/100km' AS metric_unit
+      FROM ratio;
+
+  - id: AuxH2_Dist
+    name: "百公里整车附件等效氢耗(kg/100km)"
+    unit: "kg/100km"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0) AS dist_km,
+          (
+            (
+              SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+              - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+              - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+              - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            )
+            + SUM((COALESCE(TRY_CAST(BattCurr AS DOUBLE),0)*COALESCE(TRY_CAST(BattVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS aux_kwh,
+          (
+            SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS fc_kwh,
+          SUM(
+            (COALESCE(TRY_CAST(StkCurr AS DOUBLE), 0))
+            / 2.016 / 96485 * 2
+            / 3600
+            * {{stk_cell_count}}
+            / {{stk_h2_corr}}
+          ) AS h2_kg
+        FROM t
+      ),
+      ratio AS (
+        SELECT dist_km, aux_kwh, CASE WHEN h2_kg>0 THEN fc_kwh/h2_kg ELSE NULL END AS h2ele FROM base
+      )
+      SELECT
+        'AuxH2_Dist' AS metric_id,
+        '百公里整车附件等效氢耗(kg/100km)' AS metric_name,
+        CASE WHEN dist_km>0 AND h2ele>0 THEN (aux_kwh/h2ele)/dist_km*100 ELSE NULL END AS metric_value,
+        'kg/100km' AS metric_unit
+      FROM ratio;
+
+  - id: FcBopH2_Dist
+    name: "百公里燃料电池BOP等效氢耗(kg/100km)"
+    unit: "kg/100km"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0) AS dist_km,
+          (
+            SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            + SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+            + SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS bop_kwh,
+          (
+            SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS fc_kwh,
+          SUM(
+            (COALESCE(TRY_CAST(StkCurr AS DOUBLE), 0))
+            / 2.016 / 96485 * 2
+            / 3600
+            * {{stk_cell_count}}
+            / {{stk_h2_corr}}
+          ) AS h2_kg
+        FROM t
+      ),
+      ratio AS (
+        SELECT dist_km, bop_kwh, CASE WHEN h2_kg>0 THEN fc_kwh/h2_kg ELSE NULL END AS h2ele FROM base
+      )
+      SELECT
+        'FcBopH2_Dist' AS metric_id,
+        '百公里燃料电池BOP等效氢耗(kg/100km)' AS metric_name,
+        CASE WHEN dist_km>0 AND h2ele>0 THEN (bop_kwh/h2ele)/dist_km*100 ELSE NULL END AS metric_value,
+        'kg/100km' AS metric_unit
+      FROM ratio;
+
+  - id: FcAcpH2_Dist
+    name: "百公里燃料电池Acp等效氢耗(kg/100km)"
+    unit: "kg/100km"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0) AS dist_km,
+          SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0) AS acp_kwh,
+          (
+            SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS fc_kwh,
+          SUM(
+            (COALESCE(TRY_CAST(StkCurr AS DOUBLE), 0))
+            / 2.016 / 96485 * 2
+            / 3600
+            * {{stk_cell_count}}
+            / {{stk_h2_corr}}
+          ) AS h2_kg
+        FROM t
+      ),
+      ratio AS (
+        SELECT dist_km, acp_kwh, CASE WHEN h2_kg>0 THEN fc_kwh/h2_kg ELSE NULL END AS h2ele FROM base
+      )
+      SELECT
+        'FcAcpH2_Dist' AS metric_id,
+        '百公里燃料电池Acp等效氢耗(kg/100km)' AS metric_name,
+        CASE WHEN dist_km>0 AND h2ele>0 THEN (acp_kwh/h2ele)/dist_km*100 ELSE NULL END AS metric_value,
+        'kg/100km' AS metric_unit
+      FROM ratio;
+
+  - id: FcHrbH2_Dist
+    name: "百公里燃料电池Hrb等效氢耗(kg/100km)"
+    unit: "kg/100km"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0) AS dist_km,
+          SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0) AS hrb_kwh,
+          (
+            SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS fc_kwh,
+          SUM(
+            (COALESCE(TRY_CAST(StkCurr AS DOUBLE), 0))
+            / 2.016 / 96485 * 2
+            / 3600
+            * {{stk_cell_count}}
+            / {{stk_h2_corr}}
+          ) AS h2_kg
+        FROM t
+      ),
+      ratio AS (
+        SELECT dist_km, hrb_kwh, CASE WHEN h2_kg>0 THEN fc_kwh/h2_kg ELSE NULL END AS h2ele FROM base
+      )
+      SELECT
+        'FcHrbH2_Dist' AS metric_id,
+        '百公里燃料电池Hrb等效氢耗(kg/100km)' AS metric_name,
+        CASE WHEN dist_km>0 AND h2ele>0 THEN (hrb_kwh/h2ele)/dist_km*100 ELSE NULL END AS metric_value,
+        'kg/100km' AS metric_unit
+      FROM ratio;
+
+  - id: FcWcpH2_Dist
+    name: "百公里燃料电池Wcp等效氢耗(kg/100km)"
+    unit: "kg/100km"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0) AS dist_km,
+          SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0) AS wcp_kwh,
+          (
+            SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS fc_kwh,
+          SUM(
+            (COALESCE(TRY_CAST(StkCurr AS DOUBLE), 0))
+            / 2.016 / 96485 * 2
+            / 3600
+            * {{stk_cell_count}}
+            / {{stk_h2_corr}}
+          ) AS h2_kg
+        FROM t
+      ),
+      ratio AS (
+        SELECT dist_km, wcp_kwh, CASE WHEN h2_kg>0 THEN fc_kwh/h2_kg ELSE NULL END AS h2ele FROM base
+      )
+      SELECT
+        'FcWcpH2_Dist' AS metric_id,
+        '百公里燃料电池Wcp等效氢耗(kg/100km)' AS metric_name,
+        CASE WHEN dist_km>0 AND h2ele>0 THEN (wcp_kwh/h2ele)/dist_km*100 ELSE NULL END AS metric_value,
+        'kg/100km' AS metric_unit
+      FROM ratio;
+
+  # ========= 全程平均功率（kW）=========
+  - id: VehEng_T
+    name: "整车平均功率(全程)(kW)"
+    unit: "kW"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          COUNT(*)/3600.0 AS hours,
+          (
+            (
+              SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+              - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+              - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+              - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            )
+            + SUM((COALESCE(TRY_CAST(BattCurr AS DOUBLE),0)*COALESCE(TRY_CAST(BattVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS veh_kwh
+        FROM t
+      )
+      SELECT
+        'VehEng_T' AS metric_id,
+        '整车平均功率(全程)(kW)' AS metric_name,
+        CASE WHEN hours>0 THEN veh_kwh/hours ELSE NULL END AS metric_value,
+        'kW' AS metric_unit
+      FROM base;
+
+  - id: DrvEng_T
+    name: "驱动电机平均功率(全程)(kW)"
+    unit: "kW"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          COUNT(*)/3600.0 AS hours,
+          SUM((COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))/1000.0/3600.0) AS drv_kwh
+        FROM t
+      )
+      SELECT
+        'DrvEng_T' AS metric_id,
+        '驱动电机平均功率(全程)(kW)' AS metric_name,
+        CASE WHEN hours>0 THEN drv_kwh/hours ELSE NULL END AS metric_value,
+        'kW' AS metric_unit
+      FROM base;
+
+  - id: AuxEng_T
+    name: "整车附件平均功率(全程)(kW)"
+    unit: "kW"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          COUNT(*)/3600.0 AS hours,
+          (
+            (
+              (
+                SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+                - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+                - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+                - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+              )
+              + SUM((COALESCE(TRY_CAST(BattCurr AS DOUBLE),0)*COALESCE(TRY_CAST(BattVolt AS DOUBLE),0))/1000.0/3600.0)
+            )
+            - SUM((COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS aux_kwh
+        FROM t
+      )
+      SELECT
+        'AuxEng_T' AS metric_id,
+        '整车附件平均功率(全程)(kW)' AS metric_name,
+        CASE WHEN hours>0 THEN aux_kwh/hours ELSE NULL END AS metric_value,
+        'kW' AS metric_unit
+      FROM base;
+
+  - id: FCEng_T
+    name: "燃料电池平均功率(全程)(kW)"
+    unit: "kW"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          COUNT(*)/3600.0 AS hours,
+          (
+            SUM((COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0/3600.0)
+            - SUM((COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0/3600.0)
+          ) AS fc_kwh
+        FROM t
+      )
+      SELECT
+        'FCEng_T' AS metric_id,
+        '燃料电池平均功率(全程)(kW)' AS metric_name,
+        CASE WHEN hours>0 THEN fc_kwh/hours ELSE NULL END AS metric_value,
+        'kW' AS metric_unit
+      FROM base;
+
+  - id: BattEng_T
+    name: "动力电池平均功率(全程)(kW)"
+    unit: "kW"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          COUNT(*)/3600.0 AS hours,
+          SUM((COALESCE(TRY_CAST(BattCurr AS DOUBLE),0)*COALESCE(TRY_CAST(BattVolt AS DOUBLE),0))/1000.0/3600.0) AS batt_kwh
+        FROM t
+      )
+      SELECT
+        'BattEng_T' AS metric_id,
+        '动力电池平均功率(全程)(kW)' AS metric_name,
+        CASE WHEN hours>0 THEN batt_kwh/hours ELSE NULL END AS metric_value,
+        'kW' AS metric_unit
+      FROM base;
+
+  # ========= 行车段平均功率（DrvT 系列，VehSpd>0）=========
+  - id: VehEng_DrvT
+    name: "整车平均功率(行车)(kW)"
+    unit: "kW"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(CASE WHEN COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)>0 THEN 1 ELSE 0 END)/3600.0 AS hours_drv,
+          SUM(
+            CASE WHEN COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)>0 THEN
+              (
+                (
+                  (COALESCE(TRY_CAST(DcfCurrOut AS DOUBLE),0)*COALESCE(TRY_CAST(DcfVoltOut AS DOUBLE),0))/1000.0
+                  - (COALESCE(TRY_CAST(WcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(WcpVolt AS DOUBLE),0))/1000.0
+                  - (COALESCE(TRY_CAST(HrbCurr AS DOUBLE),0)*COALESCE(TRY_CAST(HrbVolt AS DOUBLE),0))/1000.0
+                  - (COALESCE(TRY_CAST(AcpCurr AS DOUBLE),0)*COALESCE(TRY_CAST(AcpVolt AS DOUBLE),0))/1000.0
+                )
+                + (COALESCE(TRY_CAST(BattCurr AS DOUBLE),0)*COALESCE(TRY_CAST(BattVolt AS DOUBLE),0))/1000.0
+              )/3600.0
+            ELSE 0 END
+          ) AS veh_kwh_drv
+        FROM t
+      )
+      SELECT
+        'VehEng_DrvT' AS metric_id,
+        '整车平均功率(行车)(kW)' AS metric_name,
+        CASE WHEN hours_drv>0 THEN veh_kwh_drv/hours_drv ELSE NULL END AS metric_value,
+        'kW' AS metric_unit
+      FROM base;
+
+  - id: DrvEng_DrvT
+    name: "驱动电机平均功率(行车)(kW)"
+    unit: "kW"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(CASE WHEN COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)>0 THEN 1 ELSE 0 END)/3600.0 AS hours_drv,
+          SUM(
+            CASE WHEN COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)>0
+                 THEN (COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))/1000.0/3600.0
+                 ELSE 0 END
+          ) AS drv_kwh_drv
+        FROM t
+      )
+      SELECT
+        'DrvEng_DrvT' AS metric_id,
+        '驱动电机平均功率(行车)(kW)' AS metric_name,
+        CASE WHEN hours_drv>0 THEN drv_kwh_drv/hours_drv ELSE NULL END AS metric_value,
+        'kW' AS metric_unit
+      FROM base;
+
+  - id: DrvEng_Pos_DrvT
+    name: "驱动电机驱动平均功率(行车)(kW)"
+    unit: "kW"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(CASE WHEN COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)>0 THEN 1 ELSE 0 END)/3600.0 AS hours_drv,
+          SUM(
+            CASE WHEN COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)>0
+                   AND (COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))>0
+                 THEN (COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))/1000.0/3600.0
+                 ELSE 0 END
+          ) AS pos_kwh_drv
+        FROM t
+      )
+      SELECT
+        'DrvEng_Pos_DrvT' AS metric_id,
+        '驱动电机驱动平均功率(行车)(kW)' AS metric_name,
+        CASE WHEN hours_drv>0 THEN pos_kwh_drv/hours_drv ELSE NULL END AS metric_value,
+        'kW' AS metric_unit
+      FROM base;
+
+  - id: DrvEng_Neg_DrvT
+    name: "驱动电机回馈平均功率(行车)(kW)"
+    unit: "kW"
+    prompt_sql: >
+      WITH base AS (
+        SELECT
+          SUM(CASE WHEN COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)>0 THEN 1 ELSE 0 END)/3600.0 AS hours_drv,
+          SUM(
+            CASE WHEN COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)>0
+                   AND (COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))<0
+                 THEN -(COALESCE(TRY_CAST(MotCurr AS DOUBLE),0)*COALESCE(TRY_CAST(MotVolt AS DOUBLE),0))/1000.0/3600.0
+                 ELSE 0 END
+          ) AS neg_kwh_drv
+        FROM t
+      )
+      SELECT
+        'DrvEng_Neg_DrvT' AS metric_id,
+        '驱动电机回馈平均功率(行车)(kW)' AS metric_name,
+        CASE WHEN hours_drv>0 THEN neg_kwh_drv/hours_drv ELSE NULL END AS metric_value,
+        'kW' AS metric_unit
+      FROM base;
+
+  # ========= FC运行里程 =========
+  - id: SysOpr_Dist
+    name: "燃料电池运行里程(km)"
+    unit: "km"
+    prompt_sql: >
+      SELECT
+        'SysOpr_Dist' AS metric_id,
+        '燃料电池运行里程(km)' AS metric_name,
+        SUM(
+          CASE WHEN COALESCE(TRY_CAST(StkCurr AS DOUBLE),0)>0
+               THEN COALESCE(TRY_CAST(VehSpd AS DOUBLE),0)/3600.0
+               ELSE 0 END
+        ) AS metric_value,
+        'km' AS metric_unit
+      FROM t;
